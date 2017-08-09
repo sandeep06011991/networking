@@ -1,0 +1,59 @@
+Game Plan
+
+0) Not able to run the emulator. --- Done (11:37 pm)
+
+1) Set up perfect channel and test communication -- DONE (12:38 pm)
+I am slogging . Should work on productivity tools
+
+what format are the running files in -- DONE
+Write function to send data -- 1:30 DONE at 1:23 pm
+Clean up code
+
+2) Establish connection --- DONE
+
+3) Send hello world (no header) -- DONE
+
+4) Recv Hello world --- DONE
+
+by 3:00 today --- DONE at 4
+
+5)Write code to test acknowledgement of data. -- DONE 3:16
+5.1) Clean up all code
+5.2) Get a working model
+
+6)Break file into packets
+   Pack and unpack packet , proving that it works. -- DONE 9:46
+
+7) Prove that ACKS work --- begin 10:00 DONE 10:20
+
+
+8) Study session: sunday ----
+    a) Sockets not working fixed (begin:2:42 end:3:42)
+    b) Incorrect packet creation fix(begin:3:37
+    c) Send one packet in perfect channel done with messy code end:5:42)
+    d) Fixed some bugs --- Sent complete file
+
+9) Only partial file is being sent.
+CURRENT (6:19 .. )
+absolutely clueless at 6:44
+Went shopping
+Fixed it in 20 min later at 20 min
+clean up all code and commit. DONE
+
+
+8) Create corrupt file ACKs ---
+start corruption parameter
+(begin:5:18 pm  --- 7:00 )
+
+9) Create timer for ACKs
+(Add dropped packets to complete)
+(5:50 pm ----6:40) Timer working.
+
+(Start working here)
+10) Review Code and commit
+11) Test code with corruption high.
+(Done -- Spent may be 15 min)
+
+12) Create Pipeline for window.(Total time by 3)
+a)Rough draft of code (Begin 1:15am -- done at 3:15am)
+

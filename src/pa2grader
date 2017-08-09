@@ -1,0 +1,226 @@
+#!/bin/bash
+# Author: V. Arun
+
+############################################################
+# This script takes exactly one argument. It must either be your
+# top-level directory <last4digitsOfStudentID>_pa2/ or the zip of that
+# directory <last4digitsOfStudentID>_pa2.zip (or tgz) that the script
+# will unpack and expect to find the top-level directory
+# <last4digitsOfStudentID>_pa2/.
+#
+# You can run this script in one of the following ways:
+#   pa2grader <last4digitsOfStudentID>_pa2.zip
+#   pa2grader <last4digitsOfStudentID>_pa2.tgz
+#   pa2grader <last4digitsOfStudentID>_pa2/
+############################################################
+
+############################################################
+########## Setting up grading server and test files ########
+# You can change "wget" to "curl". You need to have at least one of
+# the two for this script to work.
+GET=wget
+
+# Set the full path of these commands if they are not in your path
+# already, e.g., /usr/bin/java for java. 
+JAVA=java
+RUBY=ruby
+PYTHON=python
+
+RECEIVER=ChatReceiver
+SENDER=ChatSender
+
+PATH=.:$PATH
+DEFAULT_SERVER=plum.cs.umass.edu
+DEFAULT_PORT=8888
+
+GRADING_SERVER=date.cs.umass.edu
+PORT=8888
+NUM_PORTS=1
+
+ID_NUM_DIGITS=4
+
+FILES_URL=http://$GRADING_SERVER/453/pa2/test_files
+FILENAME_PREFIX=sfile
+NUM_FILES=4
+############################################################
+
+############################################################
+##################### Unpacking submission #################
+TARZIP=$1
+DIR=`echo $TARZIP|sed s/\.tgz//g|sed s/\.tar.gz//g|sed s/\.zip//g|sed s/\\\///g`
+ID=`echo $DIR|sed s/_.*//g | sed s/[^0-9]//g`
+if [[ `echo $ID|wc|awk '{print $3}'` -gt `expr $ID_NUM_DIGITS + 1` ]]; then
+  echo "You can not include more than the last $ID_NUM_DIGITS digits of your
+  student ID in you package name because of FERPA regulations; exiting";
+  exit;
+fi
+
+if [[ $ID"_pa2" != $DIR && $ID"_PA2" != $DIR ]]; then
+  echo "Your package is not in the format
+  last4DigitsOfStudentID_pa2.zip (or .tgz); exiting."
+  exit;
+fi
+
+if [[ $TARZIP = *.tgz || $TARZIP = *.tar.gz ]]; then
+  echo "Determined file type to be .tgz; unpacking"
+  tar -xvf $TARZIP
+else if [[ $TARZIP = *.zip ]]; then
+  echo "Determined file type to be .zip; unpacking"
+  unzip -o $TARZIP
+fi
+fi
+
+if [[ ! -d $DIR ]]; then 
+
+  echo "Could not find directory '$DIR' after unpacking $TARZIP. This
+  is most likely because you did not follow the file naming
+  conventions correctly. Please read them carefully and resubmit."
+  exit; fi
+
+# stepping into unpackaged directory
+cd $DIR  
+############################################################
+
+############################################################
+############# Setting up testing directory #################
+TESTING_DIR_PREFIX=testing
+TESTING_DIR_SUFFIX=`date|awk '{print $2"_"$3"_"$4}'|sed s/:/./g`$RANDOM
+TESTING_DIR=$TESTING_DIR_PREFIX$TESTING_DIR_SUFFIX
+ARCHIVE_DIR=testing_archive
+TESTING_FILES_DIR=testing_files
+
+# create testing_files directory
+if [[ ! -d $TESTING_FILES_DIR ]]; then
+  echo "Creating directory "$TESTING_FILES_DIR
+  mkdir $TESTING_FILES_DIR
+  # no error checking 
+fi
+
+# create testing archive directory
+if [[ ! -d $ARCHIVE_DIR ]]; then
+  mkdir $ARCHIVE_DIR
+  # no error checking 
+fi
+# archive previous testing directories 
+for i in $TESTING_DIR_PREFIX*; do
+  if [[ $i != $ARCHIVE_DIR && $i != $TESTING_FILES_DIR ]]; then
+    echo "moving $i to $ARCHIVE_DIR"
+    mv $i $ARCHIVE_DIR
+    # no error checking 
+  fi
+done
+
+# create current testing directory
+if [[ ! -d $TESTING_DIR ]]; then
+  mkdir $TESTING_DIR
+  if [ $? -eq 0 ]; then
+    echo Created directory ./$DIR/$TESTING_DIR
+  else 
+    echo "Failed to create testing directory; exiting"
+	exit
+  fi
+fi
+
+cd $TESTING_FILES_DIR
+
+for i in `seq 1 $NUM_FILES`; do
+  if [[ ! -f $FILENAME_PREFIX$i ]]; then
+    # curl needs -f to fail and -o <outfile> to redirect stdin
+    if [[ $GET == "curl" ]]; then 
+	  OUTPUT=" -o "$FILENAME_PREFIX$i; 
+	  GET="$GET -f"
+	fi
+    $GET $FILES_URL/$FILENAME_PREFIX$i $OUTPUT
+	if [ ! $? -eq 0 ]; then
+	  echo -n "Failed to get necessary test files (either 
+	  because of network issues or because you do not
+	  have 'wget' or 'curl' in your path)...exiting."
+	  exit
+	fi
+  fi
+done
+
+cd ..
+echo; echo "Retrieved necessary testing files."
+
+############################################################
+
+############################################################
+################ Finding executable programs ##############
+
+if [[ -f $RECEIVER.class && -f $SENDER.class ]]; then
+  CMD=$JAVA
+  echo "Found java executables $RECEIVER and $SENDER."
+  EXT=""
+else if [[ -f $RECEIVER.rb && -f $SENDER.rb ]]; then
+  CMD=$RUBY
+  echo "Found ruby programs $RECEIVER and $SENDER."
+  EXT=.rb
+else if [[ -f $RECEIVER.o && -f $SENDER.o ]]; then
+  CMD=""
+  echo "Found C/C++ executables $RECEIVER.o and $SENDER.o."
+  EXT=.o
+else if [[ -f $RECEIVER.py && -f $SENDER.py ]]; then
+  CMD=$PYTHON
+  EXT=.py
+  echo "Found python programs $RECEIVER.py and $SENDER.py."
+else 
+
+  echo "Could not find ChatReceiver.<extension> and
+  ChatSender.<extension> executables ending with any of the
+  extensions: .class .o .py .ruby. If you are using a language other
+  than Java, C, Python, or Ruby, please contact the instructor"
+
+  exit
+
+fi fi fi fi
+############################################################
+
+############################################################
+############### Ready to begin testing ####################
+
+SCORE=0
+INCR=5
+RESULT_FILE="GRADES_"$ID
+
+START_TIME=`date +%s`
+for j in `seq 1 $NUM_PORTS`; do
+  for i in `seq 1 $NUM_FILES`; do
+
+    echo "--------------------------------------------------------"; 
+	# start receiver in the background
+	echo Testing file transfer $i over server $j.
+    echo "$CMD ChatReceiver$EXT -s $GRADING_SERVER -p `expr $PORT + $j - 1` > $TESTING_DIR/rfile$i$j &"
+    $CMD ChatReceiver$EXT -s $GRADING_SERVER -p `expr $PORT + $j - 1` > $TESTING_DIR/rfile$i$j &
+    #if [ ! $? -eq 0 ]; then echo "Exiting."; exit; fi
+  
+    # use standard input only for text files, else use file
+    isText=`file $TESTING_FILES_DIR/sfile$i|grep text`
+	if [[ ! $isText ]]; then # not text
+      echo "$CMD ChatSender$EXT -s $GRADING_SERVER -p `expr $PORT + $j - 1` -f $TESTING_FILES_DIR/sfile$i"
+      time $CMD ChatSender$EXT -s $GRADING_SERVER -p `expr $PORT + $j - 1` -f  $TESTING_FILES_DIR/sfile$i
+	else # text
+      echo "$CMD ChatSender$EXT -s $GRADING_SERVER -p `expr $PORT + $j - 1` < $TESTING_FILES_DIR/sfile$i"
+      time $CMD ChatSender$EXT -s $GRADING_SERVER -p `expr $PORT + $j - 1` < $TESTING_FILES_DIR/sfile$i
+	fi
+    #if [ ! $? -eq 0 ]; then echo "Exiting."; exit; fi
+  
+    diff $TESTING_FILES_DIR/sfile$i $TESTING_DIR/rfile$i$j > $TESTING_DIR/diff$i$j
+    if [ ! $? -eq 0 ]; then
+      if [ -s $TESTING_DIR/diff$i$j ]; then 
+        echo "FAILURE: Sent and received files differ as follows:"
+  	  cat $TESTING_DIR/diff$i$j;
+      fi 
+    else 
+	  echo SUCCESS: Reliably transferred test file $i over server $j.
+      SCORE=`expr $SCORE + 1`
+    fi
+  done
+done
+END_TIME=`date +%s`
+
+echo; 
+RESULT="----$ID passed $SCORE out of `expr $NUM_PORTS \* $NUM_FILES` total tests in `expr $END_TIME - $START_TIME` seconds. [`date`]"
+echo $RESULT # on stdout or web page
+echo $RESULT >> $RESULT_FILE # also record on file
+############################################################
