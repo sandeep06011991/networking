@@ -31,7 +31,7 @@ How to Run
 
 
 ### Credits for code not written by me:
-1.pa2/
+1. pa2/
   Code to run the channel - Prof. Arun V.
-2.UDPTelnet.java - Prof. Arun V.
+2. UDPTelnet.java - Prof. Arun V.
 
