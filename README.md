@@ -12,7 +12,7 @@ The size of the transmission window is 10 bytes
 
 The above problems are addressed as follows
 1. corrupt packets: Add checksum every 99 bytes (As the channel might flip one byte in 100 bytes)
-2. drop packets: on Timer expire : attempt retransmission
+2. drop packets: on Timer expire -> attempt retransmission
 3. reorder packets: add packet id to header.
 4. transmission window: to minimize latency caused due to rtt delay
 
@@ -30,5 +30,8 @@ How to Run
    make send
 
 
-
+### Credits for code not written by me:
+1.pa2/
+  Code to run the channel - Prof. Arun V.
+2.UDPTelnet.java - Prof. Arun V.
 
