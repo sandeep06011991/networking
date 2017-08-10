@@ -57,7 +57,7 @@ public class ChatSender extends BaseTCP{
                         if((recvId>ackedFrame) &&(recvId<=UNackedframeId)){
                             removeAckedPackets(recvId-ackedFrame);
                         }else{
-                            LOGGER.info("Wierd frameId received"+recvId);
+//                            LOGGER.info("Wierd frameId received"+recvId);
                             retransmit();
                         }
                     } catch (IOException e) {
